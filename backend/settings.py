@@ -25,7 +25,16 @@ SECRET_KEY = "django-insecure-+k-dct+h)mgi5#k8fb&6rc)=j682dmzd6$k#8)7rq1w(dw(2!)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# Allow your Codespaces forwarded URL
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "humble-waddle-qr55qj9q7wpcxp79-8000.app.github.dev",
+]
+
+# CSRF trusted origins (needed for login/forms in Codespaces)
+CSRF_TRUSTED_ORIGINS = [
+    "https://humble-waddle-qr55qj9q7wpcxp79-8000.app.github.dev",]
 
 
 # Application definition
