@@ -12,33 +12,27 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
+# Security
 SECRET_KEY = "django-insecure-+k-dct+h)mgi5#k8fb&6rc)=j682dmzd6$k#8)7rq1w(dw(2!)"
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# Allow your Codespaces forwarded URL
+# Allowed hosts (Codespaces URL + localhost)
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    "humble-waddle-qr55qj9q7wpcxp79-8000.app.github.dev",
+    "crispy-adventure-w6qq7p97rqvfv4w-8000.app.github.dev",
 ]
 
-# CSRF trusted origins (needed for login/forms in Codespaces)
+# CSRF trusted origins (for Codespaces login & POST forms)
 CSRF_TRUSTED_ORIGINS = [
-    "https://humble-waddle-qr55qj9q7wpcxp79-8000.app.github.dev",]
+    "https://localhost:8000",
+    "https://crispy-adventure-w6qq7p97rqvfv4w-8000.app.github.dev",
+]
 
-
-# Application definition
-
+# Installed apps
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -51,10 +45,14 @@ INSTALLED_APPS = [
     'stats',
     'performance',
     'adminpanel',
+
+    'rest_framework',   # << added
+    'corsheaders',      # << added
 ]
 
-
+# Middleware
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",  # << added
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -66,17 +64,16 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "backend.urls"
 
-# settings.py
-
+# Templates
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # no global templates
-        'APP_DIRS': True,
+        'DIRS': [],  # global templates (none yet)
+        'APP_DIRS': True,  # look in app/templates/
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request',
+                'django.template.context_processors.request',  # needed for admin login
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -84,16 +81,10 @@ TEMPLATES = [
     },
 ]
 
-STATIC_URL = '/static/'
-# no STATICFILES_DIRS needed if everything is inside app/static/
-
-
+# WSGI
 WSGI_APPLICATION = "backend.wsgi.application"
 
-
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
+# Database (SQLite for now)
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -101,39 +92,21 @@ DATABASES = {
     }
 }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
-
+# Password validators
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},
 ]
 
-
 # Internationalization
-# https://docs.djangoproject.com/en/6.0/topics/i18n/
-
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_TZ = True
 
+# Static files (inside each app's static folder)
+STATIC_URL = "/static/"
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
-
-STATIC_URL = "static/"
+CORS_ALLOW_ALL_ORIGINS = True
