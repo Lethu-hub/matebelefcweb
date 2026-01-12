@@ -6,7 +6,7 @@ class Command(BaseCommand):
     help = 'Import players from a CSV file (idempotent)'
 
     def add_arguments(self, parser):
-        parser.add_argument('csv_file', type=str, help='Path to players CSV file')
+        parser.add_argument('csv_file', type=str, help='players.csv')
 
     def handle(self, *args, **kwargs):
         csv_file = kwargs['csv_file']
@@ -20,8 +20,6 @@ class Command(BaseCommand):
                         'surname': row.get('Surname', ''),
                         'position': row.get('Position', ''),
                         'height_cm': int(row.get('Height', 0)) if row.get('Height') else None,
-                        'weight_kg': None,  # optional, leave blank
-                        'date_of_birth': None  # optional, leave blank
                     }
                 )
-        self.stdout.write(self.style.SUCCESS('Players imported successfully (idempotent)!'))
+        self.stdout.write(self.style.SUCCESS('Players imported successfully!'))

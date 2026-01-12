@@ -1,218 +1,37 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Analytics Dashboard</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .section { margin-bottom: 50px; }
-        .filters { margin-bottom: 10px; }
-        .filters select { margin-right: 10px; padding: 5px; }
-        table { border-collapse: collapse; margin-bottom: 10px; width: 100%; }
-        th, td { border: 1px solid #ccc; padding: 5px; text-align: center; }
-        th { background-color: #f0f0f0; }
-        .greyed { pointer-events: none; opacity: 0.3; }
-    </style>
-</head>
-<body>
 
-<h1>Analytics Dashboard</h1>
+{% block content %}
+<h2>Analytics Dashboard</h2>
 
-<!-- ================= PLAYER SECTION ================= -->
-<div class="section" id="playerSection">
-    <h2>Player Analytics</h2>
+<select id="players" multiple>
+  {% for p in players %}
+    <option value="{{ p.id }}">{{ p.first_name }} {{ p.surname }}</option>
+  {% endfor %}
+</select>
 
-    <div class="filters">
-        <label>Season:
-            <select id="playerSeasonFilter">
-                <option value="">All</option>
-                {% for season in seasons %}
-                <option value="{{ season }}">{{ season }}</option>
-                {% endfor %}
-            </select>
-        </label>
+<select id="matches" multiple>
+  {% for m in matches %}
+    <option value="{{ m.match_id }}">
+      {{ m.match_date }} ({{ m.season }})
+    </option>
+  {% endfor %}
+</select>
 
-        <label>Event Type:
-            <select id="playerEventFilter">
-                <option value="">All</option>
-                {% for event_type in event_types %}
-                <option value="{{ event_type }}">{{ event_type }}</option>
-                {% endfor %}
-            </select>
-        </label>
+<select id="seasons" multiple>
+  {% for s in seasons %}
+    <option value="{{ s }}">{{ s }}</option>
+  {% endfor %}
+</select>
 
-        <label>Chart Type:
-            <select id="playerChartType">
-                <option value="bar">Bar</option>
-                <option value="line">Line</option>
-                <option value="box">Box</option>
-                <option value="scatter">Scatter</option>
-            </select>
-        </label>
-    </div>
+<select id="event_types" multiple>
+  {% for e in event_types %}
+    <option value="{{ e }}">{{ e }}</option>
+  {% endfor %}
+</select>
 
-    <table id="playerTable">
-        <thead>
-            <tr>
-                <th>Player</th>
-                <th>Matches Played</th>
-                <th>Total Events</th>
-                <th>Mean Minute</th>
-                <th>Variance</th>
-                <th>Std Dev</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for player in players %}
-            <tr data-player="{{ player.player_id }}">
-                <td>{{ player.first_name }} {{ player.surname }}</td>
-                <td>{{ player.matches_played }}</td>
-                <td>{{ player.total_events }}</td>
-                <td>{{ player.mean_events|default:"0"|floatformat:2 }}</td>
-                <td>{{ player.variance|default:"0"|floatformat:2 }}</td>
-                <td>{{ player.std_dev|default:"0"|floatformat:2 }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<canvas id="chart"></canvas>
 
-    <div id="playerChart" style="width:100%;height:400px;"></div>
-</div>
-
-<!-- ================= MATCH SECTION ================= -->
-<div class="section" id="matchSection">
-    <h2>Match Analytics</h2>
-
-    <div class="filters">
-        <label>Match:
-            <select id="matchSelect">
-                <option value="">All</option>
-                {% for m in matches %}
-                <option value="{{ m.match_id }}">{{ m.match_id }} — {{ m.match_date }} (Season {{ m.season }})</option>
-                {% endfor %}
-            </select>
-        </label>
-
-        <label>Chart Type:
-            <select id="matchChartType">
-                <option value="bar">Bar</option>
-                <option value="line">Line</option>
-                <option value="box">Box</option>
-                <option value="scatter">Scatter</option>
-            </select>
-        </label>
-    </div>
-
-    <table id="matchTable">
-        <thead>
-            <tr>
-                <th>Match</th>
-                <th>Total Events</th>
-                <th>Mean Minute</th>
-                <th>Variance</th>
-                <th>Std Dev</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for match in matches %}
-            <tr data-match="{{ match.match_id }}">
-                <td>{{ match.match_id }} — {{ match.match_date }}</td>
-                <td>{{ match.total_events }}</td>
-                <td>{{ match.mean_events|default:"0"|floatformat:2 }}</td>
-                <td>{{ match.variance|default:"0"|floatformat:2 }}</td>
-                <td>{{ match.std_dev|default:"0"|floatformat:2 }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <div id="matchChart" style="width:100%;height:400px;"></div>
-</div>
-
-<!-- ================= JS ================= -->
-<script>
-const matchPlayers = {{ match_players_json|safe }};
-
-// ---------------- PLAYER CHART ----------------
-function drawChart(containerId, labels, values, type) {
-    let trace;
-    if (type === "line") {
-        trace = { x: labels, y: values, mode: "lines+markers", type: "scatter" };
-    } else if (type === "box") {
-        trace = { y: values, type: "box" };
-    } else if (type === "scatter") {
-        trace = { x: labels, y: values, mode: "markers", type: "scatter" };
-    } else {
-        trace = { x: labels, y: values, type: "bar" };
-    }
-    Plotly.newPlot(document.getElementById(containerId), [trace]);
-}
-
-function updatePlayerChart() {
-    const type = document.getElementById("playerChartType").value;
-
-    const rows = document.querySelectorAll("#playerTable tbody tr");
-    const labels = [];
-    const values = [];
-
-    rows.forEach(r => {
-        if (!r.classList.contains("greyed")) {
-            labels.push(r.children[0].innerText);
-            values.push(parseFloat(r.children[2].innerText));
-        }
-    });
-
-    drawChart("playerChart", labels, values, type);
-}
-
-document.getElementById("playerChartType").addEventListener("change", updatePlayerChart);
-document.getElementById("playerSeasonFilter").addEventListener("change", updatePlayerChart);
-document.getElementById("playerEventFilter").addEventListener("change", updatePlayerChart);
-
-// ---------------- MATCH CHART ----------------
-function updateMatchChart() {
-    const type = document.getElementById("matchChartType").value;
-    const rows = document.querySelectorAll("#matchTable tbody tr");
-    const labels = [];
-    const values = [];
-
-    rows.forEach(r => {
-        labels.push(r.children[0].innerText);
-        values.push(parseFloat(r.children[1].innerText));
-    });
-
-    drawChart("matchChart", labels, values, type);
-}
-
-document.getElementById("matchChartType").addEventListener("change", updateMatchChart);
-
-// ---------------- AUTO GREY-OUT ----------------
-document.getElementById("matchSelect").addEventListener("change", () => {
-    const matchId = document.getElementById("matchSelect").value;
-    const rows = document.querySelectorAll("#playerTable tbody tr");
-
-    rows.forEach(r => r.classList.remove("greyed"));
-
-    if (!matchId) return;
-
-    const idsInMatch = matchPlayers[matchId] || [];
-
-    rows.forEach(r => {
-        const pid = parseInt(r.getAttribute("data-player"));
-        if (!idsInMatch.includes(pid)) {
-            r.classList.add("greyed");
-        }
-    });
-
-    updatePlayerChart();
-});
-
-// Initial draw
-updatePlayerChart();
-updateMatchChart();
-</script>
-
-</body>
-</html>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'stats/js/analytics.js' %}"></script>
+{% endblock %}

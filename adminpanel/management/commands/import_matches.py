@@ -7,7 +7,7 @@ class Command(BaseCommand):
     help = 'Import matches from a CSV file (idempotent)'
 
     def add_arguments(self, parser):
-        parser.add_argument('csv_file', type=str, help='Path to matches CSV file')
+        parser.add_argument('csv_file', type=str, help='matches.csv')
 
     def handle(self, *args, **kwargs):
         csv_file = kwargs['csv_file']
@@ -25,12 +25,8 @@ class Command(BaseCommand):
                     match_id=row.get('Match_ID'),
                     defaults={
                         'match_date': match_date,
-                        'opponent': row.get('Opponent', ''),
-                        'venue': row.get('Venue', ''),
-                        'result': row.get('Result', ''),
-                        'score_mfc': int(row.get('Score_MFC', 0)) if row.get('Score_MFC') else None,
-                        'score_opponent': int(row.get('Score_Opponent', 0)) if row.get('Score_Opponent') else None,
-                        'season': row.get('Season', '')
+                        'season': row.get('Season', ''),
                     }
                 )
-        self.stdout.write(self.style.SUCCESS('Matches imported successfully (idempotent)!'))
+
+        self.stdout.write(self.style.SUCCESS('Matches imported successfully!'))

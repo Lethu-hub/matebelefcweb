@@ -84,13 +84,16 @@ TEMPLATES = [
 # WSGI
 WSGI_APPLICATION = "backend.wsgi.application"
 
-# Database (SQLite for now)
+# settings.py
+
+# Use SQLite for local development
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / "db.sqlite3",
     }
 }
+
 
 # Password validators
 AUTH_PASSWORD_VALIDATORS = [

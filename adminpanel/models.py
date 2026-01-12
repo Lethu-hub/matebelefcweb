@@ -15,8 +15,12 @@ class Match(models.Model):
     season = models.CharField(max_length=10, blank=True)
 
 class MatchEvent(models.Model):
-    match = models.ForeignKey(Match, on_delete=models.CASCADE)
-    player = models.ForeignKey(Player, on_delete=models.CASCADE)
+    match = models.ForeignKey('Match', on_delete=models.CASCADE)
+    player = models.ForeignKey('Player', on_delete=models.CASCADE)
     event_type = models.CharField(max_length=50)
     minute = models.IntegerField(null=True, blank=True)
+    season = models.CharField(max_length=20, blank=True, null=True)         # new field for season
+    description = models.TextField(blank=True, null=True)                    # new field for any extra notes
 
+    def __str__(self):
+        return f"{self.event_type} by {self.player} in match {self.match}"

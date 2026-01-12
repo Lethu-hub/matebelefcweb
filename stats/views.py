@@ -1,44 +1,58 @@
-import json
 from django.shortcuts import render
-from django.db.models import Count, Avg, StdDev, Variance
+from django.http import JsonResponse
 from adminpanel.models import Player, Match, MatchEvent
 
+
+# =========================
+# HTML PAGE VIEW
+# =========================
 def analytics_dashboard(request):
-    # Players
-    players = Player.objects.annotate(
-        total_events=Count('matchevent'),
-        matches_played=Count('matchevent__match', distinct=True),
-        mean_events=Avg('matchevent__minute'),
-        variance=Variance('matchevent__minute'),
-        std_dev=StdDev('matchevent__minute')
-    ).order_by('surname', 'first_name')
+    players = Player.objects.all().order_by('surname', 'first_name')
+    matches = Match.objects.all().order_by('-match_date')
 
-    # Matches
-    matches = Match.objects.annotate(
-        total_events=Count('matchevent'),
-        mean_events=Avg('matchevent__minute'),
-        variance=Variance('matchevent__minute'),
-        std_dev=StdDev('matchevent__minute')
-    ).order_by('-match_date')
-
-    # Seasons & Event Types
     seasons = Match.objects.values_list('season', flat=True).distinct().order_by('season')
     event_types = MatchEvent.objects.values_list('event_type', flat=True).distinct().order_by('event_type')
 
-    # Build match -> player ids mapping
-    match_players = {}
-    for match in matches:
-        player_ids = list(
-            match.matchevent_set.values_list('player__player_id', flat=True).distinct()
-        )
-        match_players[match.match_id] = player_ids
-
     context = {
-        'players': players,
-        'matches': matches,
-        'seasons': seasons,
-        'event_types': event_types,
-        'match_players_json': json.dumps(match_players)
+        "players": players,
+        "matches": matches,
+        "seasons": list(seasons),
+        "event_types": list(event_types),
     }
 
-    return render(request, 'stats/analytics/index.html', context)
+    return render(request, "stats/analytics/index.html", context)
+
+
+# =========================
+# JSON DATA API
+# =========================
+def analytics_data(request):
+    players = request.GET.getlist("players[]")
+    matches = request.GET.getlist("matches[]")
+    seasons = request.GET.getlist("seasons[]")
+    event_types = request.GET.getlist("event_types[]")
+
+    qs = MatchEvent.objects.select_related("player", "match")
+
+    if players:
+        qs = qs.filter(player_id__in=players)
+    if matches:
+        qs = qs.filter(match__match_id__in=matches)
+    if seasons:
+        qs = qs.filter(season__in=seasons)
+    if event_types:
+        qs = qs.filter(event_type__in=event_types)
+
+    data = []
+    for e in qs:
+        data.append({
+            "player_id": e.player_id,
+            "player": f"{e.player.first_name} {e.player.surname}",
+            "match_id": e.match.match_id,
+            "match_date": str(e.match.match_date),
+            "event_type": e.event_type,
+            "minute": e.minute,
+            "season": e.season,
+        })
+
+    return JsonResponse(data, safe=False)
