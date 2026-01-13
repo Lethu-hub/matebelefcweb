@@ -1,0 +1,51 @@
+{% load static %}
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Admin - Matches</title>
+  <style>
+    body{font-family:system-ui, -apple-system, BlinkMacSystemFont; padding:20px}
+    form{margin-bottom:20px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border:1px solid #ddd}
+    .danger{color:#b91c1c}
+  </style>
+</head>
+<body>
+  <h1>Matches</h1>
+  <form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Add / Update</button></form>
+  
+  <h2>Bulk add players to a match</h2>
+  <form method="post" action="{% url 'adminpanel:add_players_to_match' %}">{% csrf_token %}
+    <label for="match_id">Select match:</label>
+    <select name="match_id" id="match_id">
+      {% for m in matches %}
+        <option value="{{ m.match_id }}">{{ m.match_date }} ({{ m.match_id }})</option>
+      {% endfor %}
+    </select>
+    <label for="players">Select players to add:</label>
+    <select name="players" id="players" multiple style="min-width:300px; height:120px">
+      {% for p in players %}
+        <option value="{{ p.player_id }}">{{ p.first_name }} {{ p.surname }}</option>
+      {% endfor %}
+    </select>
+    <div><button type="submit">Add selected players</button></div>
+  </form>
+  <table>
+    <thead><tr><th>Match ID</th><th>Date</th><th>Season</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for m in matches %}
+      <tr>
+        <td>{{ m.match_id }}</td>
+        <td>{{ m.match_date }}</td>
+        <td>{{ m.season }}</td>
+        <td><a href="{% url 'adminpanel:matches' %}?edit={{ m.match_id }}">Edit</a> | <a class="danger" href="{% url 'adminpanel:delete_match' m.match_id %}">Delete</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">No matches</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

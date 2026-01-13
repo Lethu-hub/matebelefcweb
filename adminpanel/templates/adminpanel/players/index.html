@@ -1,0 +1,37 @@
+{% load static %}
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Admin - Players</title>
+	<style>
+		body{font-family:system-ui, -apple-system, BlinkMacSystemFont; padding:20px}
+		form{margin-bottom:20px}
+		table{width:100%;border-collapse:collapse}
+		th,td{padding:8px;border:1px solid #ddd}
+		.danger{color:#b91c1c}
+	</style>
+</head>
+<body>
+	<h1>Players</h1>
+	<form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Add / Update</button></form>
+	<table>
+		<thead><tr><th>Player ID</th><th>First</th><th>Surname</th><th>Position</th><th>Height (cm)</th><th>Actions</th></tr></thead>
+		<tbody>
+			{% for p in players %}
+			<tr>
+				<td>{{ p.player_id }}</td>
+				<td>{{ p.first_name }}</td>
+				<td>{{ p.surname }}</td>
+				<td>{{ p.position }}</td>
+				<td>{{ p.height_cm }}</td>
+				<td><a href="{% url 'adminpanel:players' %}?edit={{ p.player_id }}">Edit</a> | <a class="danger" href="{% url 'adminpanel:delete_player' p.player_id %}">Delete</a></td>
+			</tr>
+			{% empty %}
+			<tr><td colspan="6">No players</td></tr>
+			{% endfor %}
+		</tbody>
+	</table>
+</body>
+</html>
+

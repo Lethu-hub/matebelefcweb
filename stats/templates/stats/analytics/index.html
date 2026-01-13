@@ -138,6 +138,42 @@
   <canvas id="team-chart" height="300"></canvas>
 </div>
 
+<!-- ================= METRICS SECTION ================= -->
+<div class="section" id="metrics-section">
+  <h2>Custom Metrics</h2>
+  <div class="filters">
+    <label>Metric:</label>
+    <select id="metrics-metric">
+      <option value="minute_hist">Minutes Histogram</option>
+      <option value="minute_density">Minute Density (frequency density)</option>
+      <option value="cumulative_by_player">Cumulative Events (by player over matches)</option>
+      <option value="top_scorers">Top Scorers</option>
+    </select>
+
+    <label>Bins (histogram only):</label>
+    <input id="metrics-bins" type="number" min="2" max="50" value="10">
+
+    <label>Players:</label>
+    <select id="metrics-player" multiple>
+      {% for player in players %}
+        <option value="{{ player.id }}">{{ player.first_name }} {{ player.surname }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Matches:</label>
+    <select id="metrics-match" multiple>
+      {% for match in matches %}
+        <option value="{{ match.match_id }}">{{ match.match_date }} ({{ match.match_id }})</option>
+      {% endfor %}
+    </select>
+
+    <button id="metrics-update">Update Metric</button>
+  </div>
+
+  <canvas id="metrics-chart" height="300"></canvas>
+  <div id="metrics-table"></div>
+</div>
+
 <script>
   // ================= INIT MULTI-SELECTS =================
   const playerSeasonSelect = new Choices('#player-season', { removeItemButton: true });
@@ -150,8 +186,29 @@
   const teamMatchSelect = new Choices('#team-match', { removeItemButton: true });
   const teamEventSelect = new Choices('#team-event-type', { removeItemButton: true });
 
+  // Add richer chart types to the selectors
+  document.querySelectorAll('#player-chart-type, #team-chart-type').forEach(sel => {
+    sel.innerHTML = `
+      <option value="bar">Bar</option>
+      <option value="line">Line</option>
+      <option value="area">Area (filled line)</option>
+      <option value="doughnut">Doughnut</option>
+      <option value="radar">Radar</option>
+      <option value="scatter">Scatter</option>
+    `;
+  });
+
   let playerChart = null;
   let teamChart = null;
+
+  function generateColors(n, alpha=0.75) {
+    const colors = [];
+    for (let i = 0; i < n; i++) {
+      const hue = Math.round((360 * i) / n);
+      colors.push(`hsla(${hue}, 70%, 45%, ${alpha})`);
+    }
+    return colors;
+  }
 
   function fetchData(section) {
     const season = Array.from(document.querySelector(`#${section}-season`).selectedOptions).map(o => o.value);
@@ -170,7 +227,7 @@
       .then(res => res.json())
       .then(data => {
         buildTable(`${section}-table`, data);
-        buildChart(`${section}-chart`, data, chartType, section);
+        buildChart(`${section}-chart`, data, chartType, section, players, matches);
       });
   }
 
@@ -191,20 +248,64 @@
     });
   }
 
-  function buildChart(canvasId, data, type, section) {
+  function buildChart(canvasId, data, type, section, players, matches) {
     const ctx = document.getElementById(canvasId).getContext("2d");
-    const labels = data.map(d => d.player + " (" + d.event_type + ")");
-    const values = data.map(d => d.minute);
 
     if (section === 'player' && playerChart) playerChart.destroy();
     if (section === 'team' && teamChart) teamChart.destroy();
 
-    const chart = new Chart(ctx, {
-      type: type,
-      data: { labels: labels, datasets: [{ label: 'Event Minutes', data: values, backgroundColor: 'rgba(75, 192, 192, 0.5)', borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1 }] },
-      options: { responsive: true, plugins: { legend: { display: true }, tooltip: { enabled: true } }, scales: { y: { beginAtZero: true } } }
-    });
+    // Derived unique labels
+    const uniquePlayers = Array.from(new Set(data.map(d => ({ id: d.player_id, name: d.player })))) ;
+    const uniquePlayerNames = uniquePlayers.map(u => u.name);
+    const uniqueMatches = Array.from(new Set(data.map(d => d.match_id)));
 
+    let labels = [];
+    const datasets = [];
+
+    // If multiple players selected, group by player across matches
+    if (players && players.length > 1) {
+      labels = uniqueMatches;
+      const colors = generateColors(players.length);
+      players.forEach((pid, idx) => {
+        const labelName = (data.find(d => d.player_id == pid) || {}).player || pid;
+        const dataPoints = labels.map(matchId => data.filter(d => d.player_id == pid && d.match_id == matchId).length);
+        datasets.push({ label: labelName, data: dataPoints, backgroundColor: colors[idx], borderColor: colors[idx].replace(/\,\s*[^,]+\)/, ', 1)') });
+      });
+    }
+    // If multiple matches selected, group by match across players
+    else if (matches && matches.length > 1) {
+      labels = uniquePlayerNames;
+      const colors = generateColors(matches.length);
+      matches.forEach((mid, idx) => {
+        const dataPoints = labels.map(pname => data.filter(d => d.match_id == mid && d.player == pname).length);
+        datasets.push({ label: mid, data: dataPoints, backgroundColor: colors[idx], borderColor: colors[idx].replace(/\,\s*[^,]+\)/, ', 1)') });
+      });
+    }
+    // Fallback: single-series showing minute values
+    else {
+      labels = data.map(d => d.player + ' (' + d.match_id + ')');
+      const values = data.map(d => d.minute || 0);
+      datasets.push({ label: 'Event Minutes', data: values, backgroundColor: generateColors(1)[0], borderColor: generateColors(1)[0].replace(/\,\s*[^,]+\)/, ', 1)') });
+    }
+
+    // For pie/doughnut: aggregate totals per dataset label
+    if (type === 'doughnut' || type === 'pie') {
+      const pieLabels = datasets.map(ds => ds.label);
+      const pieData = datasets.map(ds => ds.data.reduce((a, b) => a + b, 0));
+      const pieColors = generateColors(pieLabels.length, 0.85);
+      const chart = new Chart(ctx, { type: type, data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: pieColors }] }, options: { responsive: true } });
+      if (section === 'player') playerChart = chart;
+      if (section === 'team') teamChart = chart;
+      return;
+    }
+
+    const chartConfig = {
+      type: (type === 'area' ? 'line' : type),
+      data: { labels: labels, datasets: datasets.map(ds => ({ ...ds, fill: (type === 'area'), tension: 0.3 })) },
+      options: { responsive: true, plugins: { legend: { display: true }, tooltip: { enabled: true } }, scales: { y: { beginAtZero: true } } }
+    };
+
+    const chart = new Chart(ctx, chartConfig);
     if (section === 'player') playerChart = chart;
     if (section === 'team') teamChart = chart;
   }
@@ -212,9 +313,62 @@
   document.getElementById('player-update').addEventListener('click', () => fetchData('player'));
   document.getElementById('team-update').addEventListener('click', () => fetchData('team'));
 
+  // METRICS HANDLERS
+  const metricsPlayerSelect = new Choices('#metrics-player', { removeItemButton: true });
+  const metricsMatchSelect = new Choices('#metrics-match', { removeItemButton: true });
+  document.getElementById('metrics-update').addEventListener('click', updateMetric);
+
+  let metricsChart = null;
+  function updateMetric() {
+    const metric = document.getElementById('metrics-metric').value;
+    const bins = document.getElementById('metrics-bins').value;
+    const players = Array.from(document.querySelector(`#metrics-player`).selectedOptions).map(o => o.value);
+    const matches = Array.from(document.querySelector(`#metrics-match`).selectedOptions).map(o => o.value);
+
+    const params = new URLSearchParams();
+    params.append('metric', metric);
+    players.forEach(p => params.append('players[]', p));
+    matches.forEach(m => params.append('matches[]', m));
+    if (metric === 'minutes_histogram') params.append('bins', bins);
+
+    fetch(`/stats/analytics/metrics/?${params.toString()}`)
+      .then(res => res.json())
+      .then(payload => {
+        const ctx = document.getElementById('metrics-chart').getContext('2d');
+        if (metricsChart) metricsChart.destroy();
+
+        if (metric === 'minute_hist') {
+          // payload: { labels: [...], counts: [...] }
+          metricsChart = new Chart(ctx, { type: 'bar', data: { labels: payload.labels, datasets: [{ label: 'Count', data: payload.counts, backgroundColor: generateColors(payload.labels.length) }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+          document.getElementByminute_density') {
+          // payload: { labels: [...], density: [...] }
+          metricsChart = new Chart(ctx, { type: 'line', data: { labels: payload.labels, datasets: [{ label: 'Density', data: payload.density, borderColor: generateColors(1)[0], backgroundColor: generateColors(1)[0], fill: false, tension: 0.2 }] }, options: { responsive: true } });
+          document.getElementById('metrics-table').innerHTML = '';
+        } else if (metric === 'Id('metrics-table').innerHTML = '';
+        } else if (metric === 'cumulative_by_player') {
+          // payload: { labels: [...], datasets: [{label, data}, ...] }
+          const colors = generateColors(payload.datasets.length);
+          const datasets = payload.datasets.map((ds, i) => ({ label: ds.label, data: ds.data, borderColor: colors[i], backgroundColor: colors[i], fill: false, tension: 0.2 }));
+          metricsChart = new Chart(ctx, { type: 'line', data: { labels: payload.labels, datasets }, options: { responsive: true, plugins: { legend: { display: true } } } });
+          document.getElementById('metrics-table').innerHTML = '';
+        } else if (metric === 'top_scorers') {
+          // payload: { labels: [...], counts: [...] }
+          const labels = payload.labels;
+          const counts = payload.counts;
+          metricsChart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Goals', data: counts, backgroundColor: generateColors(labels.length) }] }, options: { responsive: true } });
+          // also show a table
+          let html = '<table><thead><tr><th>Player</th><th>Count</th></tr></thead><tbody>';
+          labels.forEach((l, idx) => { html += `<tr><td>${l}</td><td>${counts[idx]}</td></tr>` });
+          html += '</tbody></table>';
+          document.getElementById('metrics-table').innerHTML = html;
+        }
+      });
+  }
+
   // Initial load
   fetchData('player');
   fetchData('team');
+  updateMetric();
 </script>
 
 {% endblock %}

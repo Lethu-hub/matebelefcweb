@@ -25,7 +25,22 @@ def matches_view(request):
         return redirect('adminpanel:matches')
     
     matches = Match.objects.all()
-    return render(request, 'adminpanel/matches/index.html', {'form': form, 'matches': matches})
+    players = Player.objects.all().order_by('surname', 'first_name')
+    return render(request, 'adminpanel/matches/index.html', {'form': form, 'matches': matches, 'players': players})
+
+
+def add_players_to_match(request):
+    if request.method == 'POST':
+        match_id = request.POST.get('match_id')
+        player_ids = request.POST.getlist('players')
+        try:
+            m = Match.objects.get(match_id=match_id)
+            # player_ids are UUID strings -> add by pk
+            players_qs = Player.objects.filter(player_id__in=player_ids)
+            m.players.add(*players_qs)
+        except Match.DoesNotExist:
+            pass
+    return redirect('adminpanel:matches')
 
 def delete_match(request, pk):
     Match.objects.filter(match_id=pk).delete()
@@ -42,5 +57,5 @@ def events_view(request):
     return render(request, 'adminpanel/match_events/index.html', {'form': form, 'events': events})
 
 def delete_event(request, pk):
-    MatchEvent.objects.filter(event_id=pk).delete()
+    MatchEvent.objects.filter(pk=pk).delete()
     return redirect('adminpanel:events')
