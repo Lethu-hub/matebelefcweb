@@ -32,7 +32,7 @@
     <label>Player:</label>
     <select id="player-player" multiple>
       {% for player in players %}
-        <option value="{{ player.id }}">{{ player.first_name }} {{ player.surname }}</option>
+        <option value="{{ player.player_id }}">{{ player.first_name }} {{ player.surname }}</option>
       {% endfor %}
     </select>
 
@@ -99,7 +99,7 @@
     <label>Players:</label>
     <select id="team-player" multiple>
       {% for player in players %}
-        <option value="{{ player.id }}">{{ player.first_name }} {{ player.surname }}</option>
+        <option value="{{ player.player_id }}">{{ player.first_name }} {{ player.surname }}</option>
       {% endfor %}
     </select>
 
@@ -156,7 +156,7 @@
     <label>Players:</label>
     <select id="metrics-player" multiple>
       {% for player in players %}
-        <option value="{{ player.id }}">{{ player.first_name }} {{ player.surname }}</option>
+        <option value="{{ player.player_id }}">{{ player.first_name }} {{ player.surname }}</option>
       {% endfor %}
     </select>
 

@@ -5,6 +5,18 @@
     <meta charset="UTF-8">
     <title>Matebele FC</title>
     <style>
+        .nav-btn {
+            display:inline-block;
+            padding:.55rem .9rem;
+            border-radius:8px;
+            background: rgba(255,255,255,0.12);
+               color: #0b1220;
+            text-decoration: none;
+            font-weight:700;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.18); }
         :root { --accent: #2563eb; --muted: #93c5fd; }
         body { margin:0; font-family: system-ui, -apple-system, BlinkMacSystemFont; color:#111; }
         .hero {
@@ -38,7 +50,7 @@
         .hero p { margin:0 0 1rem 0; color: #d1d5db; }
         .cta { display:flex; gap:1rem; justify-content:center; }
         .btn { background: var(--accent); color: white; padding: .9rem 1.4rem; border-radius: 8px; font-weight:700; text-decoration:none; box-shadow: 0 8px 20px rgba(37,99,235,0.18); }
-        .btn.secondary { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.06); }
+        .btn.secondary { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.06); color: #0b1220; }
 
         .section { max-width: 900px; margin: 2.2rem auto; padding: 1.6rem; background: white; border-radius: 10px; box-shadow: 0 6px 20px rgba(2,6,23,0.06); }
         .upcoming ul { list-style:none; padding:0; margin:0; }
@@ -52,8 +64,24 @@
     </style>
 </head>
 <body>
-    <main>
-        <section class="hero">
+    <main style="scroll-snap-type: y mandatory; overflow-y:auto; height:100vh;">
+        <header style="position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:1rem;padding:.6rem 1rem;background:rgba(255,255,255,0.02);z-index:30;">
+            <div style="flex:0 0 auto;">
+                <a class="btn secondary" href="{% url 'admin:login' %}">Login</a>
+            </div>
+            <nav style="flex:1 1 auto;display:flex;justify-content:center;gap:0.6rem;">
+                <a class="nav-btn" href="#landing">Landing</a>
+                <a class="nav-btn" href="#upcoming">Upcoming</a>
+                <a class="nav-btn" href="#team">Meet The Team</a>
+                <a class="nav-btn" href="#season">Season</a>
+                <a class="nav-btn" href="#performance">Performance</a>
+            </nav>
+            <div style="flex:0 0 auto;">
+                <a class="btn" href="{% url 'stats:analytics' %}">Analytics</a>
+            </div>
+        </header>
+
+        <section id="landing" class="hero" style="scroll-snap-align:start;">
             <video class="bg-video" autoplay muted loop playsinline>
                 <source src="{% static 'home/videos/background.mp4' %}" type="video/mp4">
                 <!-- fallback image -->
@@ -61,32 +89,152 @@
             <div class="content">
                 <h1>Welcome to Matebele FC</h1>
                 <p>Official club dashboard — stats, matches, and updates.</p>
-                <div class="cta">
-                    <a class="btn" href="{% url 'stats:analytics' %}">Analytics</a>
-                    <a class="btn secondary" href="{% url 'admin:login' %}">Login</a>
-                </div>
+                
             </div>
         </section>
-
-        <section class="section upcoming">
+        <script>
+            document.addEventListener('DOMContentLoaded', function(){
+                var btn = document.getElementById('toggle-upcoming');
+                if(!btn) return;
+                btn.addEventListener('click', function(){
+                    var more = document.getElementById('more-upcoming');
+                    if(!more) return;
+                    if(more.style.display === 'none'){
+                        more.style.display = 'block';
+                        btn.textContent = 'Show less';
+                    } else {
+                        more.style.display = 'none';
+                        btn.textContent = 'Show more';
+                    }
+                });
+            });
+        </script>
+        <section id="upcoming" class="section upcoming" style="scroll-snap-align:start;">
             <h2>Upcoming Matches</h2>
             {% if upcoming_matches %}
             <ul>
                 {% for m in upcoming_matches %}
                 <li>
-                    <span>{{ m.match_date }} — <strong>{{ m.match_id }}</strong></span>
-                    <span>{{ m.season }}</span>
+                    <div style="display:flex;flex-direction:column;">
+                        <span><strong>{{ m.match_date }}{% if m.match_time %} {{ m.match_time }}{% endif %}</strong> — {{ m.opponent|default:'Matebele FC' }}</span>
+                        <small>{{ m.location }}</small>
+                    </div>
+                    <div style="text-align:right; min-width:120px;">
+                        <span>{{ m.get_outcome_display }}</span>
+                        <div>{{ m.season }}</div>
+                    </div>
                 </li>
                 {% endfor %}
+                {% if upcoming_rest %}
+                <div id="more-upcoming" style="display:none;">
+                    {% for m in upcoming_rest %}
+                    <li>
+                        <div style="display:flex;flex-direction:column;">
+                            <span><strong>{{ m.match_date }}{% if m.match_time %} {{ m.match_time }}{% endif %}</strong> — {{ m.opponent|default:'Matebele FC' }}</span>
+                            <small>{{ m.location }}</small>
+                        </div>
+                        <div style="text-align:right; min-width:120px;">
+                            <span>{{ m.get_outcome_display }}</span>
+                            <div>{{ m.season }}</div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </div>
+                <li>
+                    <button id="toggle-upcoming" style="padding:.5rem .9rem;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#0b1220;">Show more</button>
+                </li>
+                {% endif %}
             </ul>
             {% else %}
             <p>No upcoming matches scheduled.</p>
             {% endif %}
         </section>
+        <section id="team" class="section" style="scroll-snap-align:start;">
+            <h2>Meet The Team</h2>
+            <p>Meet the team</p>
+        </section>
+        <!-- fixtures section removed per request -->
 
-        <section class="section">
+        <section id="performance" class="section" style="scroll-snap-align:start;">
+            <h2>Performance</h2>
+            <p>Key analytics and charts</p>
+            <div style="display:grid;grid-template-columns:repeat(5,120px);gap:1rem;align-items:start;justify-content:center;">
+                <canvas id="mini-1" width="120" height="80" style="background:#fff;border-radius:6px;padding:6px;"></canvas>
+                <canvas id="mini-2" width="120" height="80" style="background:#fff;border-radius:6px;padding:6px;"></canvas>
+                <canvas id="mini-3" width="120" height="80" style="background:#fff;border-radius:6px;padding:6px;"></canvas>
+                <canvas id="mini-4" width="120" height="80" style="background:#fff;border-radius:6px;padding:6px;"></canvas>
+                <canvas id="mini-5" width="120" height="80" style="background:#fff;border-radius:6px;padding:6px;"></canvas>
+                <canvas id="mini-6" width="120" height="80" style="background:#fff;border-radius:6px;padding:6px;"></canvas>
+                <canvas id="mini-7" width="120" height="80" style="background:#fff;border-radius:6px;padding:6px;"></canvas>
+                <canvas id="mini-8" width="120" height="80" style="background:#fff;border-radius:6px;padding:6px;"></canvas>
+                <canvas id="mini-9" width="120" height="80" style="background:#fff;border-radius:6px;padding:6px;"></canvas>
+                <canvas id="mini-10" width="120" height="80" style="background:#fff;border-radius:6px;padding:6px;"></canvas>
+            </div>
+            <p style="margin-top:.6rem;text-align:center;font-size:.9rem;color:#475569;">Click any chart to open full analytics</p>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+                (function(){
+                    const mapping = [
+                        {id:'mini-1', metric:'goals_per_player_season'},
+                        {id:'mini-2', metric:'goals_per_match_time_series'},
+                        {id:'mini-3', metric:'top_scorers'},
+                        {id:'mini-4', metric:'minute_interval_heatmap'},
+                        {id:'mini-5', metric:'stacked_event_types_per_player'},
+                        {id:'mini-6', metric:'scatter_minutes_season'},
+                        {id:'mini-7', metric:'goals_per_position'},
+                        {id:'mini-8', metric:'matches_played_cumulative'},
+                        {id:'mini-9', metric:'event_type_pie'},
+                        {id:'mini-10', metric:'team_vs_opponent_goals'},
+                    ];
+
+                    mapping.forEach(function(m){
+                        const el = document.getElementById(m.id);
+                        if(!el) return;
+                        el.style.cursor = 'pointer';
+                        fetch(`/stats/analytics/metrics/?metric=${m.metric}`)
+                        .then(r=>r.json())
+                        .then(data=>{
+                            let cfg = {type:'bar', data:{labels:data.labels||[], datasets:[]}, options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}};
+                            if(m.metric==='scatter_minutes_season'){
+                                cfg.type='scatter';
+                                cfg.data.datasets=[{label:'minutes',data:data.points||[],pointRadius:2,backgroundColor:'#2563eb'}];
+                            } else if(m.metric==='minute_interval_heatmap'){
+                                cfg.type='bar'; cfg.data.datasets=[{label:'events',data:data.counts||[],backgroundColor:'#60a5fa'}];
+                            } else if(m.metric==='top_scorers' || m.metric==='goals_per_player_season' || m.metric==='goals_per_match_time_series' || m.metric==='goals_per_position'){
+                                cfg.type='bar'; cfg.data.datasets=[{label:'val',data:data.counts||data.datasets&&data.datasets[0]&&data.datasets[0].data||[],backgroundColor:'#2563eb'}];
+                            } else if(m.metric==='stacked_event_types_per_player'){
+                                cfg.type='bar'; cfg.data.labels=data.labels||[]; cfg.data.datasets = data.datasets?data.datasets.map((d,i)=>({label:d.label,data:d.data,backgroundColor:['#ef4444','#f97316','#f59e0b','#10b981','#3b82f6'][i%5]})):[]; cfg.options.scales={x:{display:false},y:{display:false}};
+                            } else if(m.metric==='matches_played_cumulative' || m.metric==='team_vs_opponent_goals'){
+                                cfg.type='line'; cfg.data.datasets = data.datasets?data.datasets.map((d,i)=>({label:d.label,data:d.data,borderColor:['#2563eb','#ef4444'][i%2],tension:0.3,pointRadius:0})):[]; cfg.options.scales={x:{display:false},y:{display:false}};
+                            } else if(m.metric==='event_type_pie'){
+                                cfg.type='pie'; cfg.data.datasets=[{data:data.counts||[],backgroundColor:['#60a5fa','#fb7185','#f59e0b','#34d399','#a78bfa']}];
+                            }
+                            new Chart(el.getContext('2d'), cfg);
+                        }).catch(()=>{});
+
+                        el.addEventListener('click', function(){ window.location.href = '/stats/analytics/'; });
+                    });
+                })();
+            </script>
+        </section>
+
+        <section id="season" class="section" style="scroll-snap-align:start;">
             <h2>Season Summary</h2>
-            <div class="counters">
+            {% if season_stats %}
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;">
+                {% for s in season_stats %}
+                <div style="padding:1rem;border-radius:8px;background:#fafafa;">
+                    <h3>{{ s.season }}</h3>
+                    <p>Total matches: <strong>{{ s.total }}</strong></p>
+                    <p>Played: <strong>{{ s.played }}</strong></p>
+                    <p>Upcoming: <strong>{{ s.upcoming }}</strong></p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p>No season data available.</p>
+            {% endif %}
+            <div style="margin-top:1rem;" class="counters">
                 <div class="counter">
                     <h3>{{ games_played }}</h3>
                     <p>Games played so far</p>

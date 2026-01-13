@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Player, Match, MatchEvent
+from .models import Player, Match, MatchEvent, EventType
+from django import forms
 import pandas as pd
 from django.http import HttpResponse
 from django.urls import path
@@ -98,6 +99,22 @@ class MatchEventAdmin(admin.ModelAdmin):
     list_display = ('match', 'player', 'event_type', 'minute')
     change_list_template = "admin/matchevent_change_list.html"
 
+    class MatchEventForm(forms.ModelForm):
+        event_type = forms.ChoiceField(required=False)
+
+        class Meta:
+            model = MatchEvent
+            fields = '__all__'
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            # populate choices from EventType table
+            choices = [(et.name, et.name) for et in EventType.objects.all()]
+            choices.insert(0, ('', '---'))
+            self.fields['event_type'].choices = choices
+
+    form = MatchEventForm
+
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
@@ -133,3 +150,10 @@ class MatchEventAdmin(admin.ModelAdmin):
         response = HttpResponse(df.to_csv(index=False), content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename=matchevents.csv'
         return response
+
+
+# Register EventType for create/edit in admin
+@admin.register(EventType)
+class EventTypeAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)

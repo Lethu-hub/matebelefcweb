@@ -52,7 +52,22 @@ class Match(models.Model):
     # Use formatted string like M2023_001 as primary key
     match_id = models.CharField(primary_key=True, max_length=20, editable=False)
     match_date = models.DateField(null=True, blank=True)
+    match_time = models.TimeField(null=True, blank=True)
     season = models.CharField(max_length=10, blank=True)
+    opponent = models.CharField(max_length=200, blank=True)
+    location = models.CharField(max_length=200, blank=True)
+    OUTCOME_CHOICES = [
+        ('W', 'Win'),
+        ('L', 'Loss'),
+        ('D', 'Draw'),
+        ('P', 'Pending'),
+    ]
+    outcome = models.CharField(max_length=1, choices=OUTCOME_CHOICES, default='P')
+    LEAGUE_CHOICES = [
+        ('BFL', 'Botswana Football League'),
+        ('BPL', 'Botswana Premier League'),
+    ]
+    league = models.CharField(max_length=10, choices=LEAGUE_CHOICES, blank=True, default='BPL')
     # Allow assigning many players to a match (roster)
     players = models.ManyToManyField('Player', blank=True, related_name='matches')
 
@@ -74,3 +89,14 @@ class MatchEvent(models.Model):
 
     def __str__(self):
         return f"{self.event_type} by {self.player} in match {self.match}"
+
+
+class EventType(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
