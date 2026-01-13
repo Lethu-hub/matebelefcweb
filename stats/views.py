@@ -2,10 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from adminpanel.models import Player, Match, MatchEvent
 
-
-# =========================
 # HTML PAGE VIEW
-# =========================
 def analytics_dashboard(request):
     players = Player.objects.all().order_by('surname', 'first_name')
     matches = Match.objects.all().order_by('-match_date')
@@ -23,9 +20,7 @@ def analytics_dashboard(request):
     return render(request, "stats/analytics/index.html", context)
 
 
-# =========================
-# JSON DATA API
-# =========================
+# JSON DATA ENDPOINT
 def analytics_data(request):
     players = request.GET.getlist("players[]")
     matches = request.GET.getlist("matches[]")
@@ -56,3 +51,11 @@ def analytics_data(request):
         })
 
     return JsonResponse(data, safe=False)
+
+
+# TEAM PLAYERS AUTO-FETCH
+def players_for_match(request, match_id):
+    events = MatchEvent.objects.filter(match_id=match_id).select_related("player")
+    players = list({(e.player.id, f"{e.player.first_name} {e.player.surname}") for e in events})
+    players_sorted = sorted(players, key=lambda x: x[1])
+    return JsonResponse([{"id": p[0], "name": p[1]} for p in players_sorted], safe=False)

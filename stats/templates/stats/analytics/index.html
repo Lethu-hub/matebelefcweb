@@ -1,37 +1,220 @@
-{% extends "base.html" %}
+{% extends "stats/base.html" %}
 {% load static %}
 
 {% block content %}
-<h2>Analytics Dashboard</h2>
+<h1>Analytics Dashboard</h1>
 
-<select id="players" multiple>
-  {% for p in players %}
-    <option value="{{ p.id }}">{{ p.first_name }} {{ p.surname }}</option>
-  {% endfor %}
-</select>
-
-<select id="matches" multiple>
-  {% for m in matches %}
-    <option value="{{ m.match_id }}">
-      {{ m.match_date }} ({{ m.season }})
-    </option>
-  {% endfor %}
-</select>
-
-<select id="seasons" multiple>
-  {% for s in seasons %}
-    <option value="{{ s }}">{{ s }}</option>
-  {% endfor %}
-</select>
-
-<select id="event_types" multiple>
-  {% for e in event_types %}
-    <option value="{{ e }}">{{ e }}</option>
-  {% endfor %}
-</select>
-
-<canvas id="chart"></canvas>
-
+<!-- Include Choices.js CSS & JS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{% static 'stats/js/analytics.js' %}"></script>
+
+<style>
+  body { font-family: Arial; }
+  .section { margin-bottom: 50px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; overflow-x: auto; }
+  .filters label { display: block; margin-top: 10px; }
+  .filters select { width: 100%; margin-top: 5px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table th, table td { border: 1px solid #aaa; padding: 5px; text-align: left; }
+</style>
+
+<!-- ================= PLAYER SECTION ================= -->
+<div class="section" id="player-section">
+  <h2>Player Analytics</h2>
+  <div class="filters">
+    <label>Season:</label>
+    <select id="player-season" multiple>
+      {% for season in seasons %}
+        <option value="{{ season }}">{{ season }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Player:</label>
+    <select id="player-player" multiple>
+      {% for player in players %}
+        <option value="{{ player.id }}">{{ player.first_name }} {{ player.surname }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Match:</label>
+    <select id="player-match" multiple>
+      {% for match in matches %}
+        <option value="{{ match.match_id }}">{{ match.match_date }} ({{ match.match_id }})</option>
+      {% endfor %}
+    </select>
+
+    <label>Event Type:</label>
+    <select id="player-event-type" multiple>
+      {% for event_type in event_types %}
+        <option value="{{ event_type }}">{{ event_type }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Chart Type:</label>
+    <select id="player-chart-type">
+      <option value="bar">Bar</option>
+      <option value="line">Line</option>
+      <option value="pie">Pie</option>
+    </select>
+
+    <button id="player-update">Update Player Analytics</button>
+  </div>
+
+  <h3>Data Table</h3>
+  <table id="player-table">
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Match</th>
+        <th>Date</th>
+        <th>Event Type</th>
+        <th>Minute</th>
+        <th>Season</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <canvas id="player-chart" height="300"></canvas>
+</div>
+
+<!-- ================= TEAM SECTION ================= -->
+<div class="section" id="team-section">
+  <h2>Team Analytics</h2>
+  <div class="filters">
+    <label>Season:</label>
+    <select id="team-season" multiple>
+      {% for season in seasons %}
+        <option value="{{ season }}">{{ season }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Match:</label>
+    <select id="team-match" multiple>
+      {% for match in matches %}
+        <option value="{{ match.match_id }}">{{ match.match_date }} ({{ match.match_id }})</option>
+      {% endfor %}
+    </select>
+
+    <label>Players:</label>
+    <select id="team-player" multiple>
+      {% for player in players %}
+        <option value="{{ player.id }}">{{ player.first_name }} {{ player.surname }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Event Type:</label>
+    <select id="team-event-type" multiple>
+      {% for event_type in event_types %}
+        <option value="{{ event_type }}">{{ event_type }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Chart Type:</label>
+    <select id="team-chart-type">
+      <option value="bar">Bar</option>
+      <option value="line">Line</option>
+      <option value="pie">Pie</option>
+    </select>
+
+    <button id="team-update">Update Team Analytics</button>
+  </div>
+
+  <h3>Data Table</h3>
+  <table id="team-table">
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Match</th>
+        <th>Date</th>
+        <th>Event Type</th>
+        <th>Minute</th>
+        <th>Season</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <canvas id="team-chart" height="300"></canvas>
+</div>
+
+<script>
+  // ================= INIT MULTI-SELECTS =================
+  const playerSeasonSelect = new Choices('#player-season', { removeItemButton: true });
+  const playerPlayerSelect = new Choices('#player-player', { removeItemButton: true });
+  const playerMatchSelect = new Choices('#player-match', { removeItemButton: true });
+  const playerEventSelect = new Choices('#player-event-type', { removeItemButton: true });
+
+  const teamSeasonSelect = new Choices('#team-season', { removeItemButton: true });
+  const teamPlayerSelect = new Choices('#team-player', { removeItemButton: true });
+  const teamMatchSelect = new Choices('#team-match', { removeItemButton: true });
+  const teamEventSelect = new Choices('#team-event-type', { removeItemButton: true });
+
+  let playerChart = null;
+  let teamChart = null;
+
+  function fetchData(section) {
+    const season = Array.from(document.querySelector(`#${section}-season`).selectedOptions).map(o => o.value);
+    const players = Array.from(document.querySelector(`#${section}-player`).selectedOptions).map(o => o.value);
+    const matches = Array.from(document.querySelector(`#${section}-match`).selectedOptions).map(o => o.value);
+    const events = Array.from(document.querySelector(`#${section}-event-type`).selectedOptions).map(o => o.value);
+    const chartType = document.querySelector(`#${section}-chart-type`).value;
+
+    const params = new URLSearchParams();
+    season.forEach(s => params.append('seasons[]', s));
+    players.forEach(p => params.append('players[]', p));
+    matches.forEach(m => params.append('matches[]', m));
+    events.forEach(e => params.append('event_types[]', e));
+
+    fetch(`/stats/analytics/data/?${params.toString()}`)
+      .then(res => res.json())
+      .then(data => {
+        buildTable(`${section}-table`, data);
+        buildChart(`${section}-chart`, data, chartType, section);
+      });
+  }
+
+  function buildTable(tableId, data) {
+    const tbody = document.getElementById(tableId).querySelector("tbody");
+    tbody.innerHTML = "";
+    data.forEach(row => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${row.player}</td>
+        <td>${row.match_id}</td>
+        <td>${row.match_date}</td>
+        <td>${row.event_type}</td>
+        <td>${row.minute}</td>
+        <td>${row.season}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function buildChart(canvasId, data, type, section) {
+    const ctx = document.getElementById(canvasId).getContext("2d");
+    const labels = data.map(d => d.player + " (" + d.event_type + ")");
+    const values = data.map(d => d.minute);
+
+    if (section === 'player' && playerChart) playerChart.destroy();
+    if (section === 'team' && teamChart) teamChart.destroy();
+
+    const chart = new Chart(ctx, {
+      type: type,
+      data: { labels: labels, datasets: [{ label: 'Event Minutes', data: values, backgroundColor: 'rgba(75, 192, 192, 0.5)', borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1 }] },
+      options: { responsive: true, plugins: { legend: { display: true }, tooltip: { enabled: true } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    if (section === 'player') playerChart = chart;
+    if (section === 'team') teamChart = chart;
+  }
+
+  document.getElementById('player-update').addEventListener('click', () => fetchData('player'));
+  document.getElementById('team-update').addEventListener('click', () => fetchData('team'));
+
+  // Initial load
+  fetchData('player');
+  fetchData('team');
+</script>
+
 {% endblock %}
