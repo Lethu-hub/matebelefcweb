@@ -1,44 +1,69 @@
-{% extends "stats/base.html" %}
+{% extends "stats/base.html" %} 
 {% load static %}
 
 {% block content %}
 <h1>Analytics Dashboard</h1>
 
-<!-- Choices.js CSS & JS -->
+<!-- Include Choices.js CSS & JS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-
-<!-- Chart.js & Boxplot Plugin -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot/build/Chart.BoxPlot.min.js"></script>
 
 <style>
-body { font-family: Arial; }
-.section { margin-bottom: 50px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; overflow-x: auto; }
-.filters label { display: block; margin-top: 10px; }
-.filters select, .filters input { width: 100%; margin-top: 5px; }
-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-table th, table td { border:1px solid #aaa; padding:5px; text-align:left; }
-select[disabled] { background-color: #eee; }
+  :root{
+      --navy-dark:#0A1A3F;
+      --navy-mid:#1C2D5A;
+  }
 
-.nav-btn {
-    padding: 10px 18px;
-    background: rgba(255,255,255,0.85);
-    border-radius: 12px;
-    text-decoration: none;
-    color: #1c2d5a;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-    transition: all 0.25s ease;
-    font-weight: 500;
-    margin-right: 10px;
-    display: inline-block;
-}
-.nav-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,0,0,0.12); }
+  body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      scroll-behavior: smooth;
+  }
+
+  .section { margin-bottom: 50px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; overflow-x: auto; }
+
+  .filters label { display: block; margin-top: 10px; }
+  .filters select, .filters input { width: 100%; margin-top: 5px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  table th, table td { border:1px solid #aaa; padding:5px; text-align:left; }
+  select[disabled] { background-color: #eee; }
+
+  /* ==== Soft frosted navigation buttons ==== */
+  .nav-bar { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .nav-btn {
+      padding: 10px 20px;
+      background: rgba(255,255,255,0.85);
+      border-radius: 15px;
+      color: #1c2d5a;
+      font-weight: 600;
+      text-decoration: none;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+      transition: all 0.3s ease;
+      display: inline-block;
+      text-align: center;
+  }
+
+  .nav-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.2);
+  }
 </style>
 
-<a href="/analytics" class="nav-btn">Analytics</a>
-<a href="/team" class="nav-btn">Team</a>
+<!-- ================= NAVIGATION ================= -->
+<div class="nav-bar">
+  <!-- Section scroll buttons -->
+  <a href="#player-section" class="nav-btn">Player</a>
+  <a href="#team-section" class="nav-btn">Team</a>
+
+  <!-- Page links -->
+  <a href="/" class="nav-btn">Home</a>
+  <a href="/analytics" class="nav-btn">Analytics</a>
+  <a href="/admin" class="nav-btn">Admin</a>
+</div>
 
 <!-- ================= PLAYER SECTION ================= -->
 <div class="section" id="player-section">
